@@ -17,8 +17,10 @@ public class PacketAnalyzer {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        Main main = new Main();
-        main.starter();
+        
+        // init the main window UI
+        Main mainWindow = new Main();
+        mainWindow.setVisible(true);
     }
     
 }
