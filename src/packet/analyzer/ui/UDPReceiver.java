@@ -10,17 +10,6 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -37,25 +26,38 @@ import javax.swing.JTextField;
 public class UDPReceiver extends JPanel implements ActionListener {
     
     JPanel UDPAnalyzerWindow;
-    JPanel UDPDataLogger;
+    static JPanel UDPDataLogger;
     JPanel UDPOptionPanel;
     
     JScrollPane DataLoggerScrollPane;
 
-    JLabel jLabelListener;
+    
     JLabel jLabelinstanceConnectedIPAddress;
-    JLabel jLabelPotAddress;
-    JLabel jLabelAnalyzerStatus;
+    JLabel jLabelPortAddress;
+    
+    static JLabel jLabelListener;
+    static JLabel jLabelAnalyzerStatus;
 
     JTextField JTextFieldinstanceConnectedIPAddress;
-    JTextField JTextFieldPotAddress;
+    JTextField JTextFieldPortAddress;
     JTextField JTextFieldAnalyzerStatus;
 
-    JTextArea JTextAreaLoggerPanel;
+    static JTextArea JTextAreaLoggerPanel;
 
-    JButton JButtonStart;
-    JButton JButtonStop;
-    JButton JButtonClear;
+    static JButton JButtonStart;
+    static JButton JButtonStop;
+    static JButton JButtonClear;
+    
+    private static String instanceConnectedIPAddress;
+    private static int portAddress;
+
+    public static String getInstanceConnectedIPAddress() {
+        return instanceConnectedIPAddress;
+    }
+
+    public static int getPortAddress() {
+        return portAddress;
+    }
 
     public UDPReceiver(){
         initUI();
@@ -75,11 +77,11 @@ public class UDPReceiver extends JPanel implements ActionListener {
         jLabelListener = new JLabel("Listening To: ", JLabel.RIGHT);
         jLabelAnalyzerStatus = new JLabel("Status: ", JLabel.RIGHT);
         jLabelinstanceConnectedIPAddress = new JLabel("Connected IP: ", JLabel.RIGHT);
-        jLabelPotAddress = new JLabel("Connected Port:", JLabel.RIGHT);
+        jLabelPortAddress = new JLabel("Connected Port:", JLabel.RIGHT);
         
         JTextFieldAnalyzerStatus = new JTextField(8);
         JTextFieldinstanceConnectedIPAddress = new JTextField(5);
-        JTextFieldPotAddress = new JTextField(5);
+        JTextFieldPortAddress = new JTextField(5);
         
         JTextFieldAnalyzerStatus.setText("Ready");
         
@@ -108,15 +110,85 @@ public class UDPReceiver extends JPanel implements ActionListener {
         UDPOptionPanel.add(JTextFieldAnalyzerStatus);
         UDPOptionPanel.add(jLabelinstanceConnectedIPAddress);
         UDPOptionPanel.add(JTextFieldinstanceConnectedIPAddress);
-        UDPOptionPanel.add(jLabelPotAddress);
-        UDPOptionPanel.add(JTextFieldPotAddress);
+        UDPOptionPanel.add(jLabelPortAddress);
+        UDPOptionPanel.add(JTextFieldPortAddress);
         UDPOptionPanel.add(JButtonStart);
         UDPOptionPanel.add(JButtonStop);
         UDPOptionPanel.add(JButtonClear);
     }
+    
+    public static void JTextAreaLoggerPanelUpdater(String packetData){
+        JTextAreaLoggerPanel.append(packetData);
+    }
+    
+    public static void showMessageDialog(String message){
+        JOptionPane.showMessageDialog(UDPDataLogger, message);
+    }
+    
+    public static void JButtonStartSwitch(boolean status){
+        JButtonStart.setEnabled(status);
+    }
+    
+    public static void JButtonStopSwitch(boolean status){
+       JButtonStop.setEnabled(status);
+    }
+    
+    public static void jLabelListenerUpdate(String message){
+        jLabelListener.setText(message);
+    }
+    
+    public static void jLabelAnalyzerStatusUpdate(String message){
+        jLabelAnalyzerStatus.setText(message);
+    }
 
     @Override
     public void actionPerformed(ActionEvent e){
-       // TO DO : Added UDP Logic Here 
+               Object source = e.getSource();
+        
+        packet.analyzer.engine.UDPReceiver UDPThread = new packet.analyzer.engine.UDPReceiver();
+        Thread thread = new Thread(UDPThread);
+        
+        if(!thread.isAlive())
+        {
+            thread = new Thread(UDPThread);
+        }
+        
+        if (JButtonStart.equals(source))
+        {
+            if (JTextFieldinstanceConnectedIPAddress.getText().equals("") || JTextFieldPortAddress.getText().equals(""))
+            {
+                JOptionPane.showMessageDialog(this, "Incorrect IP and Port!");
+            } 
+            else
+            {
+                jLabelListener.setText("Listening: " + JTextFieldinstanceConnectedIPAddress.getText() + " : " + JTextFieldPortAddress.getText());
+                instanceConnectedIPAddress = JTextFieldinstanceConnectedIPAddress.getText();
+                portAddress = Integer.parseInt(JTextFieldPortAddress.getText());
+                
+                JTextFieldAnalyzerStatus.setText("Processing");
+                JButtonStart.setEnabled(false);
+                JTextAreaLoggerPanel.setText("");
+                
+                thread.start();
+                JTextFieldAnalyzerStatus.setText("Capturing: ");
+            }
+
+        } 
+        else if (JButtonStop.equals(source)) 
+        {
+            JTextFieldAnalyzerStatus.setText("Terminating");
+            JButtonStop.setEnabled(false);
+            try {
+                UDPThread.terminate();
+                thread.join(500);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        }
+        else if (JButtonClear.equals(source)) 
+        {
+            JTextFieldAnalyzerStatus.setText("Cleaning");
+            JTextAreaLoggerPanel.setText("");
+        }
     }
 }
